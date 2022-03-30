@@ -1,0 +1,154 @@
+--- v4l-dvb.orig/linux/drivers/media/dvb/dvb-usb/Kconfig	2009-11-21 12:37:31.000000000 +0900
++++ v4l-dvb/linux/drivers/media/dvb/dvb-usb/Kconfig	2009-11-21 12:38:58.000000000 +0900
+@@ -323,6 +323,83 @@
+ 	help
+ 	  Say Y here to support the Japanese DTV receiver Friio.
+ 
++config DVB_USB_MTVHD
++	tristate "SKNET MonsterTV HD ISDB-T support"
++	depends on DVB_USB
++	help
++	  Say Y here to support the SKNET MonsterTV HD ISDB-T receiver
++
++if DVB_USB_MTVHD
++
++config DVB_USB_MTVHD_V1
++	bool "Version 1 of SKNET MonsterTV HD series support"
++	depends on DVB_USB_MTVHD
++	help
++	  Say Y here to support Version 1 of SKNET MonsterTV HD series:
++	
++	    MonsterTV HDUS
++	    MonsterTV HDP
++
++config DVB_USB_MTVHD_V2
++	bool "Version 2 of SKNET MonsterTV HD series support"
++	depends on DVB_USB_MTVHD
++	default y
++	help
++	  Say Y here to support Version 2 of SKNET MonsterTV HD series:
++	
++	    SKNET MonsterTV HDUC
++	    SKNET MonsterTV HDP2
++	    SKNET MonsterTV HDU2
++	    LOGITEC LDT-FS100U
++	    QUIXUN QRS-UT100B
++
++config DVB_USB_MTVHD_REMOTE_CONTROL
++	bool "IR remote controller for SKNET MonsterTV HD"
++	depends on DVB_USB_MTVHD
++	help
++	  Say Y here to support the IR remote controller on SKNET MonsterTV HD
++
++config DVB_USB_MTVHD_DES_KERNEL
++	bool "Use crypto_des library of Linux kernel"
++	depends on DVB_USB_MTVHD
++	depends on CRYPTO_DES
++	depends on BROKEN
++	default n
++	help
++	  This specifies the library to use for DES decryption.
++
++	  If you say Y here, use crypto_des library of Linux kernel.
++	  The module size is smaller, but it costs some overheads.
++
++	  If you say N here, use gnulib des library built in this module.
++
++endif # DVB_USB_MTVHD
++
++config DVB_USB_ASV5211
++	tristate "Firmware downloader for ASICEN ASV5211"
++	depends on DVB_USB
++	help
++	  Say Y here to download firmware for the ASICEN ASV5211 chip.
++	  The ASV5211 is used on:
++	
++	    SKNET MonsterTV HD series
++
++if DVB_USB_ASV5211
++
++config DVB_USB_ASV5211_WIN_DRIVER
++	bool "Use Windows driver file for ASV5211 firmware"
++	depends on DVB_USB_ASV5211
++	default n
++	help
++	  This specifies the format of the ASV5211 firmware file.
++
++	  If you say Y here, use Windows driver file for the firmware to download.
++	  This requires the specific version of "AS11Loader.sys" file.
++
++	  If you say N here, use original format for this driver.
++
++endif # DVB_USB_ASV5211
++
+ config DVB_USB_EC168
+ 	tristate "E3C EC168 DVB-T USB2.0 support"
+ 	depends on DVB_USB && EXPERIMENTAL
+--- v4l-dvb.orig/linux/drivers/media/dvb/dvb-usb/Makefile	2009-11-21 12:37:31.000000000 +0900
++++ v4l-dvb/linux/drivers/media/dvb/dvb-usb/Makefile	2009-11-22 13:15:15.000000000 +0900
+@@ -82,6 +82,25 @@
+ dvb-usb-friio-objs = friio.o friio-fe.o
+ obj-$(CONFIG_DVB_USB_FRIIO) += dvb-usb-friio.o
+ 
++dvb-usb-mtvhd-objs = mtvhd.o mtvhd-stream.o
++ifeq ($(CONFIG_DVB_USB_MTVHD_V1),y)
++  dvb-usb-mtvhd-objs += mtvhd-v1.o
++endif
++ifeq ($(CONFIG_DVB_USB_MTVHD_V2),y)
++  dvb-usb-mtvhd-objs += mtvhd-v2.o
++endif
++ifeq ($(CONFIG_DVB_USB_MTVHD_DES_KERNEL),y)
++dvb-usb-mtvhd-objs += mtvhd-des-kernel.o
++else
++dvb-usb-mtvhd-objs += mtvhd-des-gnulib.o des.o
++endif
++ifeq ($(CONFIG_DVB_USB_MTVHD_V1),y)
++  dvb-usb-mtvhd-objs += mtvhd-xor.o
++endif
++obj-$(CONFIG_DVB_USB_MTVHD) += dvb-usb-mtvhd.o
++dvb-usb-asv5211-objs = asv5211.o
++obj-$(CONFIG_DVB_USB_MTVHD) += dvb-usb-asv5211.o
++
+ dvb-usb-ec168-objs = ec168.o
+ obj-$(CONFIG_DVB_USB_EC168) += dvb-usb-ec168.o
+ 
+--- v4l-dvb.orig/linux/drivers/media/dvb/dvb-usb/dvb-usb-ids.h	2009-11-21 12:37:31.000000000 +0900
++++ v4l-dvb/linux/drivers/media/dvb/dvb-usb/dvb-usb-ids.h	2009-11-21 12:36:14.000000000 +0900
+@@ -18,6 +18,7 @@
+ #define USB_VID_ANCHOR				0x0547
+ #define USB_VID_ANSONIC				0x10b9
+ #define USB_VID_ANUBIS_ELECTRONIC		0x10fd
++#define USB_VID_ASICEN				0x1738
+ #define USB_VID_ASUS				0x0b05
+ #define USB_VID_AVERMEDIA			0x07ca
+ #define USB_VID_COMPRO				0x185b
+@@ -56,6 +57,7 @@
+ #define USB_VID_TWINHAN				0x1822
+ #define USB_VID_ULTIMA_ELECTRONIC		0x05d8
+ #define USB_VID_UNIWILL				0x1584
++#define USB_VID_VIDZMEDIA			0x3275
+ #define USB_VID_WIDEVIEW			0x14aa
+ #define USB_VID_GIGABYTE			0x1044
+ #define USB_VID_YUAN				0x1164
+@@ -284,6 +286,21 @@
+ #define USB_PID_DVB_T_USB_STICK_HIGH_SPEED_COLD		0x5000
+ #define USB_PID_DVB_T_USB_STICK_HIGH_SPEED_WARM		0x5001
+ #define USB_PID_FRIIO_WHITE				0x0001
++#define USB_PID_ASICEN_ASV5211				0x5211
++#define USB_PID_SKNET_MONSTERTV_HDUS			0x6051
++#define USB_PID_QUIXUN_QRS_NT100P			0x6052
++#define USB_PID_LOGITEC_LDT_FS100U			0x6081
++#define USB_PID_SKNET_MONSTERTV_HDU2			0x6091
++#define USB_PID_SKNET_MONSTERTV_HDP2			0x6111
++#define USB_PID_SKNET_MONSTERTV_HDP			0x7010
++#define USB_PID_QUIXUN_QRS_UT100B			0x7020
++#define USB_PID_SKNET_MONSTERTV_HDP_GOLD		0x7030
++#define USB_PID_SKNET_MONSTERTV_HDUC_GOLD		0x7050
++#define USB_PID_SKNET_MONSTERTV_HDPS			0x7060
++#define USB_PID_SKNET_MONSTERTV_HDP2_GOLD		0x7070
++#define USB_PID_SKNET_MONSTERTV_HDUC			0x7080
++#define USB_PID_SKNET_MONSTERTV_HDU2S			0x7090
++#define USB_PID_SKNET_MONSTERTV_HDP2W			0x8000
+ #define USB_PID_TVWAY_PLUS				0x0002
+ #define USB_PID_SVEON_STV20				0xe39d
+
